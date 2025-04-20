@@ -6,6 +6,113 @@
     <title>Helsingin MP-Huolto - Ammattitaitoista moottoripyörähuoltoa</title>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <!-- FullCalendar CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.css">
+    <style>
+        /* Lisätyylit kalenterille */
+        #calendar {
+            max-width: 900px;
+            margin: 30px auto;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+        }
+        
+        .fc-header-toolbar {
+            margin-bottom: 1em;
+        }
+        
+        .fc-toolbar-title {
+            font-size: 1.5em;
+            color: var(--secondary-color);
+        }
+        
+        .fc-button {
+            background-color: var(--primary-color) !important;
+            border: none !important;
+            color: white !important;
+            text-transform: capitalize;
+            border-radius: 5px !important;
+            padding: 6px 12px !important;
+        }
+        
+        .fc-button:hover {
+            background-color: var(--secondary-color) !important;
+        }
+        
+        .fc-daygrid-day-number {
+            color: var(--text-color);
+        }
+        
+        .fc-day-today {
+            background-color: rgba(230, 57, 70, 0.1) !important;
+        }
+        
+        .booking-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            z-index: 2000;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .booking-modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            width: 90%;
+            max-width: 500px;
+            position: relative;
+        }
+        
+        .close-modal {
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: var(--dark-gray);
+        }
+        
+        .booking-time-slots {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin: 20px 0;
+        }
+        
+        .time-slot {
+            padding: 10px;
+            background: var(--light-gray);
+            border-radius: 5px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .time-slot:hover {
+            background: var(--primary-color);
+            color: white;
+        }
+        
+        .time-slot.selected {
+            background: var(--primary-color);
+            color: white;
+        }
+        
+        .time-slot.booked {
+            background: #ffcccc;
+            color: var(--dark-gray);
+            cursor: not-allowed;
+            text-decoration: line-through;
+        }
+    </style>
 </head>
 <body>
     <header>
@@ -17,6 +124,7 @@
             <nav>
                 <ul>
                     <li><a href="#services">Palvelut</a></li>
+                    <li><a href="#booking">Varaa aika</a></li>
                     <li><a href="#about">Tietoa meistä</a></li>
                     <li><a href="#contact">Ota yhteyttä</a></li>
                 </ul>
@@ -28,7 +136,7 @@
         <div class="container">
             <h2>Helsingin luotettavin moottoripyörähuolto</h2>
             <p>Ammattitaitoista huoltoa, korjausta ja virityksiä kaikille moottoripyörämerkeille</p>
-            <a href="#contact" class="btn">Pyydä tarjous</a>
+            <a href="#booking" class="btn">Varaa aika</a>
         </div>
     </section>
 
@@ -70,6 +178,62 @@
         </div>
     </section>
 
+    <section id="booking" class="booking">
+        <div class="container">
+            <h2>Varaa aika huoltoon</h2>
+            <p>Valitse kalenterista vapaa päivä ja aika huollollesi</p>
+            <div id="calendar"></div>
+        </div>
+    </section>
+
+    <!-- Varaamismodaali -->
+    <div id="bookingModal" class="booking-modal">
+        <div class="booking-modal-content">
+            <span class="close-modal">&times;</span>
+            <h3 id="modalDate">Varaa aika</h3>
+            <p>Valitse sopiva aika:</p>
+            
+            <div class="booking-time-slots">
+                <div class="time-slot" data-time="09:00">09:00</div>
+                <div class="time-slot" data-time="10:00">10:00</div>
+                <div class="time-slot" data-time="11:00">11:00</div>
+                <div class="time-slot" data-time="12:00">12:00</div>
+                <div class="time-slot" data-time="13:00">13:00</div>
+                <div class="time-slot" data-time="14:00">14:00</div>
+                <div class="time-slot" data-time="15:00">15:00</div>
+                <div class="time-slot" data-time="16:00">16:00</div>
+                <div class="time-slot" data-time="17:00">17:00</div>
+            </div>
+            
+            <form id="bookingForm">
+                <div class="form-group">
+                    <label for="bookingName">Nimi</label>
+                    <input type="text" id="bookingName" name="bookingName" required>
+                </div>
+                <div class="form-group">
+                    <label for="bookingPhone">Puhelinnumero</label>
+                    <input type="tel" id="bookingPhone" name="bookingPhone" required>
+                </div>
+                <div class="form-group">
+                    <label for="bookingService">Palvelu</label>
+                    <select id="bookingService" name="bookingService" required>
+                        <option value="">Valitse palvelu</option>
+                        <option value="Perushuolto">Perushuolto</option>
+                        <option value="Iso huolto">Iso huolto</option>
+                        <option value="Renkaiden vaihto">Renkaiden vaihto</option>
+                        <option value="Jarrujen huolto">Jarrujen huolto</option>
+                        <option value="Sähköjärjestelmien korjaus">Sähköjärjestelmien korjaus</option>
+                        <option value="Muu korjaus">Muu korjaus</option>
+                        <option value="Vianetsintä">Vianetsintä</option>
+                    </select>
+                </div>
+                <input type="hidden" id="selectedDate" name="selectedDate">
+                <input type="hidden" id="selectedTime" name="selectedTime">
+                <button type="submit" class="btn">Varaa aika</button>
+            </form>
+        </div>
+    </div>
+
     <section id="about" class="about">
         <div class="container">
             <div class="about-content">
@@ -92,7 +256,7 @@
                 </div>
             </div>
             <div class="about-image">
-                <img src="https://images.unsplash.com/photo-1558981806-ec527fa84c39?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60" alt="Moottoripyörämekaanikko työskentelemässä">
+                <img src="https://images.unsplash.com/photo-1558981806-ec527fa84c39?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60" alt="Moottoripyörämekaaniko työskentelemässä">
             </div>
         </div>
     </section>
@@ -274,8 +438,158 @@
         </div>
     </footer>
 
+    <!-- FullCalendar JavaScript -->
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/locales/fi.min.js"></script>
+    
     <script>
-        // Lomakkeen lähetysilmoitus
+        // Kalenterin alustus
+        document.addEventListener('DOMContentLoaded', function() {
+            const calendarEl = document.getElementById('calendar');
+            const calendar = new FullCalendar.Calendar(calendarEl, {
+                initialView: 'dayGridMonth',
+                locale: 'fi',
+                headerToolbar: {
+                    left: 'prev,next today',
+                    center: 'title',
+                    right: 'dayGridMonth,timeGridWeek,timeGridDay'
+                },
+                firstDay: 1, // Viikko alkaa maanantaista
+                businessHours: {
+                    // Aukioloajat
+                    daysOfWeek: [1, 2, 3, 4, 5], // Ma-Pe
+                    startTime: '09:00',
+                    endTime: '18:00'
+                },
+                weekends: true, // Näytä viikonloput
+                dayMaxEvents: true,
+                dateClick: function(info) {
+                    openBookingModal(info.dateStr);
+                },
+                events: [
+                    // Esimerkki varatuista ajoista
+                    {
+                        title: 'Varattu',
+                        start: new Date().toISOString().split('T')[0] + 'T10:00:00',
+                        end: new Date().toISOString().split('T')[0] + 'T11:00:00',
+                        color: '#e63946'
+                    },
+                    {
+                        title: 'Varattu',
+                        start: new Date(new Date().setDate(new Date().getDate() + 2)).toISOString().split('T')[0] + 'T14:00:00',
+                        end: new Date(new Date().setDate(new Date().getDate() + 2)).toISOString().split('T')[0] + 'T15:00:00',
+                        color: '#e63946'
+                    }
+                ]
+            });
+            calendar.render();
+        });
+
+        // Varaamismodaali
+        const bookingModal = document.getElementById('bookingModal');
+        const modalDate = document.getElementById('modalDate');
+        const selectedDateInput = document.getElementById('selectedDate');
+        const selectedTimeInput = document.getElementById('selectedTime');
+        const timeSlots = document.querySelectorAll('.time-slot');
+        const closeModal = document.querySelector('.close-modal');
+        
+        // Esimerkki varatuista ajoista
+        const bookedTimes = [
+            { date: new Date().toISOString().split('T')[0], time: '10:00' },
+            { date: new Date(new Date().setDate(new Date().getDate() + 2)).toISOString().split('T')[0], time: '14:00' }
+        ];
+        
+        function openBookingModal(dateStr) {
+            const date = new Date(dateStr);
+            const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            modalDate.textContent = 'Varaa aika: ' + date.toLocaleDateString('fi-FI', options);
+            selectedDateInput.value = dateStr;
+            
+            // Tyhjennä aikavälit
+            timeSlots.forEach(slot => {
+                slot.classList.remove('selected', 'booked');
+                
+                // Tarkista onko aika varattu
+                const isBooked = bookedTimes.some(bt => 
+                    bt.date === dateStr && bt.time === slot.dataset.time
+                );
+                
+                if (isBooked) {
+                    slot.classList.add('booked');
+                }
+            });
+            
+            bookingModal.style.display = 'flex';
+        }
+        
+        // Sulje modaali
+        closeModal.addEventListener('click', function() {
+            bookingModal.style.display = 'none';
+        });
+        
+        // Sulje modaali klikkaamalla sen ulkopuolelle
+        window.addEventListener('click', function(event) {
+            if (event.target === bookingModal) {
+                bookingModal.style.display = 'none';
+            }
+        });
+        
+        // Valitse aika
+        timeSlots.forEach(slot => {
+            slot.addEventListener('click', function() {
+                if (!this.classList.contains('booked')) {
+                    timeSlots.forEach(s => s.classList.remove('selected'));
+                    this.classList.add('selected');
+                    selectedTimeInput.value = this.dataset.time;
+                }
+            });
+        });
+        
+        // Varaamislomakkeen käsittely
+        document.getElementById('bookingForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            if (!selectedTimeInput.value) {
+                alert('Valitse aika!');
+                return;
+            }
+            
+            // Tässä voit lisätä logiikan varauksen tallentamiseen
+            // Koska GitHub Pages ei tue palvelinpuolta, voit käyttää Formspree:tä tai muuta ulkoista palvelua
+            
+            // Esimerkki Formspree:n käytöstä
+            const formData = new FormData(this);
+            formData.append('date', selectedDateInput.value);
+            formData.append('time', selectedTimeInput.value);
+            
+            fetch('https://formspree.io/f/hkimp-huolto@gmail.com', {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'Accept': 'application/json'
+                }
+            }).then(response => {
+                if (response.ok) {
+                    alert('Aikavaraus onnistui! Otamme sinuun yhteyttä vahvistusta varten.');
+                    bookingModal.style.display = 'none';
+                    this.reset();
+                    
+                    // Päivitä kalenteri näyttämään uusi varaus
+                    // Tässä yksinkertaistettu versio - oikeassa sovelluksessa tarvitsisit palvelinpuolen
+                    bookedTimes.push({
+                        date: selectedDateInput.value,
+                        time: selectedTimeInput.value
+                    });
+                } else {
+                    throw new Error('Varauksen lähetys epäonnistui');
+                }
+            }).catch(error => {
+                alert('Jotain meni pieleen. Yritä uudelleen myöhemmin.');
+                console.error(error);
+            });
+        });
+        
+        // Yhteydenottolomakkeen käsittely
         document.getElementById('contactForm').addEventListener('submit', function(e) {
             e.preventDefault();
             const form = e.target;
